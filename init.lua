@@ -1,0 +1,6 @@
+require "options"
+require "plugins"
+require "keymaps"
+require "telescope"
+require "colorscheme"
+require "lsp"
