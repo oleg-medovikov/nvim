@@ -21,7 +21,9 @@ local plugins = {
       require "custom.configs.lspconfig"
     end, -- Override to setup mason-lspconfig
   },
-
+  {
+  "williamboman/nvim-lsp-installer",
+  },
   -- override plugin configs
   {
     "williamboman/mason.nvim",
