@@ -30,6 +30,14 @@ M.n = {
   },
   -- nerdtree
   ["<C-n>"] = {"<cmd>NvimTreeToggle<CR>", {nowait = true} },
+  -- telescope
+  ["<leader>ff"] = {
+	function()
+  require("telescope.builtin").find_files({
+    find_command = { "rg", "--files", "--hidden", "--glob", "!**/.git/*" }, -- Учитывать .gitignore
+  })
+end, { desc = "Find files (respect .gitignore)" }
+  },
 
   -- DAP
   ["<leader>db"] = { "<cmd>DapToggleBreakpoint<CR>", { desc = "Toggle breakpoint" } },

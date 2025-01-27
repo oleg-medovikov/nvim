@@ -85,5 +85,23 @@ return {
   {
     "nvim-tree/nvim-web-devicons",
     config = true
-  }
+  },
+{
+  'andrew-george/telescope-themes', -- Правильное имя репозитория
+  dependencies = { 'nvim-telescope/telescope.nvim' },
+  config = function()
+    require('telescope').load_extension('themes')
+  end
+},
+{
+  "nvim-telescope/telescope.nvim",
+  dependencies = {
+    "nvim-lua/plenary.nvim", -- Обязательно :cite[4]
+    "nvim-treesitter/nvim-treesitter",
+  },
+  config = function(_, opts)
+    require("telescope").setup(opts)
+    -- Удалите строки с load_extension("terms") 
+  end
+}
 }
