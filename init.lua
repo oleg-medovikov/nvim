@@ -14,7 +14,13 @@ vim.opt.rtp:prepend(lazypath)
 
 -- Базовые настройки Neovim
 vim.opt.number = true        -- Номера строк
-vim.opt.mouse = ""          -- Поддержка мыши
+-- Проверка, запущен ли Neovim в Neovide
+if vim.fn.exists("$NEOVIDE") == 1 then
+  vim.opt.mouse = "a" -- Включаем мышь в Neovide
+  vim.opt.clipboard = "unnamedplus"
+else
+  vim.opt.mouse = "" -- Отключаем мышь в терминале
+end
 vim.opt.termguicolors = true -- Полноцветная поддержка
 vim.g.mapleader = " "  -- Пробел как leader
 
