@@ -23,7 +23,9 @@ else
 end
 vim.opt.termguicolors = true -- Полноцветная поддержка
 vim.g.mapleader = " "  -- Пробел как leader
-
+vim.opt.tabstop = 3
+vim.opt.shiftwidth = 3
+vim.opt.expandtab = true
 
 -- Подключение mappings.lua
 local mappings = require("mappings")
