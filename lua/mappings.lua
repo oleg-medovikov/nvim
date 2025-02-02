@@ -19,6 +19,7 @@ end
 
 -- Режимы должны быть на верхнем уровне
 M.n = {
+   ["<C-v>"] = {'<C-r>+', {noremap = true}},
   -- Сочетания клавиш для изменения размера шрифта
   ["<C-=>"] = {
     function() adjust_font_size(1) end,
@@ -56,7 +57,8 @@ end, { desc = "Find files (respect .gitignore)" }
 
 M.i = {
   ["ii"] = { "<ESC>:w<CR>", { desc = "Save and exit insert", nowait = true } },
-  ["шш"] = { "<ESC>:w<CR>", { desc = "Save and exit insert (Cyr)", nowait = true } }
+  ["шш"] = { "<ESC>:w<CR>", { desc = "Save and exit insert (Cyr)", nowait = true } },
+  ["<C-v>"] = {'"+p', {noremap = true}},
 }
 
 M.v = {
@@ -66,7 +68,8 @@ M.v = {
       vim.fn.setreg('+', selection)
     end,
     { desc = "Copy to clipboard" }
-  }
+  },
+  ["<C-c>"] = {'"+y', {noremap = true}},
 }
 
 M.t = {

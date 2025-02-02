@@ -43,5 +43,3 @@ end
 
 -- Загрузка плагинов из файла plugins.lua
 require("lazy").setup("plugins")
-
-
