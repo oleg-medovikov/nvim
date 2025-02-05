@@ -11,13 +11,14 @@ if not vim.loop.fs_stat(lazypath) then
   })
 end
 vim.opt.rtp:prepend(lazypath)
+vim.opt.guifont = "FiraMono_Nerd_Font:h16"
+vim.opt.clipboard = "unnamedplus"
 
 -- Базовые настройки Neovim
 vim.opt.number = true        -- Номера строк
 -- Проверка, запущен ли Neovim в Neovide
 if vim.fn.exists("$NEOVIDE") == 1 then
   vim.opt.mouse = "a" -- Включаем мышь в Neovide
-  vim.opt.clipboard = "unnamedplus"
 else
   vim.opt.mouse = "" -- Отключаем мышь в терминале
 end
