@@ -39,7 +39,17 @@ M.n = {
   })
 end, { desc = "Find files (respect .gitignore)" }
   },
-
+   ["<leader>fg"] = {
+     function()
+       require("telescope.builtin").live_grep({
+         -- Опционально: настройки для ripgrep
+         additional_args = function(args)
+           return vim.list_extend(args, { "--hidden", "--glob", "!**/.git/*" })
+         end,
+       })
+     end,
+     { desc = "Search text in files (respect .gitignore)" }
+   },
   -- DAP
   ["<leader>db"] = { "<cmd>DapToggleBreakpoint<CR>", { desc = "Toggle breakpoint" } },
 
