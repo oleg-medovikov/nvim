@@ -8,6 +8,7 @@
   "nvim-lspconfig": { "branch": "master", "commit": "8a1529e46eef5efc86c34c8d9bdd313abc2ecba0" },
   "nvim-tree.lua": { "branch": "master", "commit": "c09ff35de503a41fa62465c6b4ae72d96e7a7ce4" },
   "nvim-treesitter": { "branch": "master", "commit": "da88ea477c67c7f7ebab6d1e662d0cdebfcb57f0" },
+  "nvim-treesitter-textobjects": { "branch": "master", "commit": "9937e5e356e5b227ec56d83d0a9d0a0f6bc9cad4" },
   "nvim-web-devicons": { "branch": "master", "commit": "d0cafff5c4347a604a07edf7bb9a91fda7eb577e" },
   "plenary.nvim": { "branch": "master", "commit": "857c5ac632080dba10aae49dba902ce3abf91b35" },
   "rust-tools.nvim": { "branch": "master", "commit": "676187908a1ce35ffcd727c654ed68d851299d3e" },

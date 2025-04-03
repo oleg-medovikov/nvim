@@ -27,7 +27,15 @@ vim.g.mapleader = " "  -- Пробел как leader
 vim.opt.tabstop = 3
 vim.opt.shiftwidth = 3
 vim.opt.expandtab = true
-
+-- сворачивание #""#
+vim.api.nvim_create_autocmd("FileType", {
+  pattern = "rust",
+  callback = function()
+    vim.opt_local.foldmethod = "expr"
+    vim.opt_local.foldexpr = "nvim_treesitter#foldexpr()"
+    vim.opt_local.foldlevel = 1  -- Уровень сворачивания по умолчанию
+  end
+})
 -- Подключение mappings.lua
 local mappings = require("mappings")
 

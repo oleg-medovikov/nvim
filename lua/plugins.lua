@@ -63,28 +63,75 @@ return {
     end
   },
 
-  -- Tree-sitter
-  {
-    "nvim-treesitter/nvim-treesitter",
-    build = ":TSUpdate",
-    config = function()
-      require("nvim-treesitter.configs").setup({
-        ensure_installed = { "rust", "lua", "python" },
-        auto_install = true,
-        highlight = { enable = true },
-        indent = { enable = true }
-      })
-    end
+-- Tree-sitter
+{
+  "nvim-treesitter/nvim-treesitter",
+  build = ":TSUpdate",
+  dependencies = {
+    "nvim-treesitter/nvim-treesitter-textobjects",  -- Для улучшенного анализа
   },
-
+  config = function()
+    require("nvim-treesitter.configs").setup({
+      ensure_installed = { "rust", "lua", "python", "sql", "javascript", "html", "css" },
+      auto_install = true,
+      highlight = { enable = true },
+      indent = { enable = true },
+      -- Настройка инъекций для вложенных языков
+      injections = {
+        enable = true,
+        include_surrounding_text = true,
+        -- Правила для Rust:
+        rust = {
+          -- SQL в raw-строках (`r#"..."#`) и блоках комментариев
+          {
+            query = [[
+              (raw_string_literal) @sql
+              (#match? @sql "^r#\"\\s*(CREATE|SELECT|INSERT|UPDATE|DELETE|ALTER)")
+            ]],
+            language = "sql",
+          },
+          -- JavaScript в строках с `js!{...}` или подобных
+          {
+            query = [[
+              (call_expression
+                function: (identifier) @func
+                arguments: (raw_string_literal) @js
+                (#eq? @func "js")
+              )
+            ]],
+            language = "javascript",
+          },
+          -- HTML/CSS в строковых литералах (например, для web-шаблонов)
+          {
+            query = [[
+              (raw_string_literal) @html
+              (#match? @html "^r#\"\\s*(<div>|<html>|<!DOCTYPE)")
+            ]],
+            language = "html",
+          },
+          {
+            query = [[
+              (raw_string_literal) @css
+              (#match? @css "^r#\"\\s*(body|\\.[a-z]|#[a-z])")
+            ]],
+            language = "css",
+          },
+        },
+      },
+    })
+  end
+},
 -- colorscheme
 {
    "folke/tokyonight.nvim",
    config = function()
+      require("tokyonight").setup({
+         style = "storm",
+         transparent = true, -- прозрачный фон
+      })
       vim.cmd[[colorscheme tokyonight]]
    end
 },
-
 
 -- Ollama
 
