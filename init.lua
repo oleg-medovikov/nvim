@@ -31,11 +31,18 @@ vim.opt.expandtab = true
 vim.api.nvim_create_autocmd("FileType", {
   pattern = "rust",
   callback = function()
-    vim.opt_local.foldmethod = "expr"
-    vim.opt_local.foldexpr = "nvim_treesitter#foldexpr()"
-    vim.opt_local.foldlevel = 1  -- Уровень сворачивания по умолчанию
+    -- Устанавливаем метод сворачивания как "marker"
+    vim.opt_local.foldmethod = "marker"
+
+    -- Определяем маркеры для сворачивания
+    vim.opt_local.foldmarker = [[r#","#]]
+
+    -- Уровень сворачивания по умолчанию
+    vim.opt_local.foldlevel = 0
   end
 })
+
+
 -- Подключение mappings.lua
 local mappings = require("mappings")
 
