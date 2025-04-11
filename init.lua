@@ -15,7 +15,7 @@ vim.opt.guifont = "FiraMono_Nerd_Font:h16"
 vim.opt.clipboard = "unnamedplus"
 
 -- Базовые настройки Neovim
-vim.opt.number = true        -- Номера строк
+vim.opt.number = false        -- Номера строк
 -- Проверка, запущен ли Neovim в Neovide
 if vim.fn.exists("$NEOVIDE") == 1 then
   vim.opt.mouse = "a" -- Включаем мышь в Neovide
@@ -27,6 +27,7 @@ vim.g.mapleader = " "  -- Пробел как leader
 vim.opt.tabstop = 3
 vim.opt.shiftwidth = 3
 vim.opt.expandtab = true
+vim.opt.signcolumn = "yes:1"
 -- сворачивание #""#
 vim.api.nvim_create_autocmd("FileType", {
   pattern = "rust",

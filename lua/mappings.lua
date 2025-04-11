@@ -55,14 +55,32 @@ end, { desc = "Find files (respect .gitignore)" }
 
   -- Общие маппинги
   [";"] = { ":", { desc = "Enter command mode", nowait = true } },
-  ["<Leader>t"] = {
-    function()
-      local width = math.floor(vim.o.columns / 3)
-      vim.cmd("belowright vsplit | vertical resize " .. width .. " | terminal")
-      vim.cmd("startinsert")
-    end,
-    { desc = "Open terminal in right third", nowait = true }
-  }
+   ["<Leader>t"] = {
+  function()
+    local width = math.floor(vim.o.columns / 3)
+    
+    vim.cmd("belowright vsplit | vertical resize " .. width .. " | terminal")
+    vim.cmd("startinsert")
+    
+    -- Фиксируем ширину окна, чтобы избежать авто-ресайза
+    vim.wo.winfixwidth = true
+    
+    local max_width = width
+    local bufnr = vim.api.nvim_get_current_buf()
+
+    vim.api.nvim_create_autocmd("WinResized", {
+      buffer = bufnr,
+      callback = function()
+        local current_width = vim.api.nvim_win_get_width(0)
+        if current_width > max_width then
+          vim.cmd("vertical resize " .. max_width)
+        end
+      end,
+    })
+  end,
+  { desc = "Open terminal in right third", nowait = true },
+}
+
 }
 
 M.i = {
