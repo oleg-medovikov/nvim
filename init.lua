@@ -28,6 +28,7 @@ vim.opt.tabstop = 3
 vim.opt.shiftwidth = 3
 vim.opt.expandtab = true
 vim.opt.signcolumn = "yes:1"
+
 -- сворачивание #""#
 vim.api.nvim_create_autocmd("FileType", {
   pattern = "rust",

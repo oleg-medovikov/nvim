@@ -205,6 +205,11 @@ return {
     theme = bubbles_theme,
     component_separators = '',
     section_separators = { left = '', right = '' },
+    disabled_filetypes = {
+      "nerdtree",  -- Игнорировать NERDTree
+      "NvimTree",  -- Если используете nvim-tree
+      "toggleterm" -- Для терминалов
+    }
   },
   sections = {
     lualine_a = { { 'mode', separator = { left = '' }, right_padding = 2 } },

@@ -55,31 +55,48 @@ end, { desc = "Find files (respect .gitignore)" }
 
   -- Общие маппинги
   [";"] = { ":", { desc = "Enter command mode", nowait = true } },
-   ["<Leader>t"] = {
-  function()
-    local width = math.floor(vim.o.columns / 3)
-    
-    vim.cmd("belowright vsplit | vertical resize " .. width .. " | terminal")
-    vim.cmd("startinsert")
-    
-    -- Фиксируем ширину окна, чтобы избежать авто-ресайза
-    vim.wo.winfixwidth = true
-    
-    local max_width = width
-    local bufnr = vim.api.nvim_get_current_buf()
 
-    vim.api.nvim_create_autocmd("WinResized", {
-      buffer = bufnr,
-      callback = function()
-        local current_width = vim.api.nvim_win_get_width(0)
-        if current_width > max_width then
-          vim.cmd("vertical resize " .. max_width)
+  ["<Leader>t"] = {
+    function()
+        -- Поиск всех окон с терминальными буферами
+        local terminals = {}
+        for _, win in ipairs(vim.api.nvim_list_wins()) do
+            local buf = vim.api.nvim_win_get_buf(win)
+            if vim.api.nvim_buf_get_option(buf, "buftype") == "terminal" then
+                table.insert(terminals, win)
+            end
         end
-      end,
-    })
-  end,
-  { desc = "Open terminal in right third", nowait = true },
+
+        if #terminals == 0 then
+            -- Если терминал не открыт: создать новый (1/3 экрана)
+            local width = math.floor(vim.o.columns / 3)
+            vim.cmd("belowright vsplit | vertical resize " .. width .. " | terminal")
+            vim.cmd("startinsert")
+            vim.wo.winfixwidth = true -- Фиксируем ширину
+        else
+            -- Если терминал уже открыт: переключить размер
+            local win = terminals[1]
+            local current_width = vim.api.nvim_win_get_width(win)
+            local columns = vim.o.columns
+            local target_third = math.floor(columns / 3)
+            local target_sixth = math.floor(columns / 6)
+
+            -- Определяем новый размер
+            local new_width = (current_width == target_third) and target_sixth or target_third
+
+            -- Применяем изменения
+            vim.api.nvim_win_set_width(win, new_width)
+
+            -- Переключаемся на терминал только при расширении (1/3 экрана)
+            if new_width == target_third then
+                vim.api.nvim_set_current_win(win)
+                vim.cmd("startinsert") -- Активируем режим вставки
+            end
+        end
+    end,
+    { desc = "Toggle terminal between 1/3 and 1/6 of screen", nowait = true }
 }
+
 
 }
 
