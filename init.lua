@@ -29,6 +29,9 @@ vim.opt.shiftwidth = 3
 vim.opt.expandtab = true
 vim.opt.signcolumn = "yes:1"
 
+-- трансляция кирилицы в латиницу для команд 
+vim.opt.langmap = "ФИСВУАПРШОЛДЬТЩЗЙКЫЕГМЦЧНЯ;ABCDEFGHIJKLMNOPQRSTUVWXYZ,фисвуапршолдьтщзйкыегмцчня;abcdefghijklmnopqrstuvwxyz"
+
 -- сворачивание #""#
 vim.api.nvim_create_autocmd("FileType", {
   pattern = "rust",
@@ -44,6 +47,13 @@ vim.api.nvim_create_autocmd("FileType", {
   end
 })
 
+-- распознание файлов .tera
+vim.api.nvim_create_autocmd({"BufNewFile","BufRead"}, {
+  pattern = "*.tera",
+  callback = function()
+    vim.bo.filetype = "html"
+  end
+})
 
 -- Подключение mappings.lua
 local mappings = require("mappings")
