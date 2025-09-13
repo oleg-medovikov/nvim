@@ -1,7 +1,7 @@
 local M = {}
 
 -- Функция для изменения размера шрифта
-local guifontsize = 20
+local guifontsize = 14
 local guifont = "FiraMono Nerd Font"
 
 local function adjust_font_size(amount)
@@ -39,17 +39,17 @@ M.n = {
   })
 end, { desc = "Find files (respect .gitignore)" }
   },
-   ["<leader>fg"] = {
-     function()
-       require("telescope.builtin").live_grep({
-         -- Опционально: настройки для ripgrep
-         additional_args = function(args)
-           return vim.list_extend(args, { "--hidden", "--glob", "!**/.git/*" })
-         end,
-       })
-     end,
-     { desc = "Search text in files (respect .gitignore)" }
-   },
+["<leader>fg"] = {
+  function()
+    require("telescope.builtin").live_grep({
+      -- Опционально: настройки для ripgrep
+      additional_args = function(args)
+        return vim.tbl_flatten({ args, "--hidden", "--glob", "!**/.git/*" })
+      end,
+    })
+  end,
+  { desc = "Search text in files (respect .gitignore)" }
+},
   -- DAP
   ["<leader>db"] = { "<cmd>DapToggleBreakpoint<CR>", { desc = "Toggle breakpoint" } },
 
