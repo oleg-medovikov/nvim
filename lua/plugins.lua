@@ -26,232 +26,231 @@ local bubbles_theme = {
   },
 }
 
-
 return {
-  {
-  "kndndrj/nvim-dbee",
-  dependencies = {
-    "MunifTanjim/nui.nvim",
-  },
-  build = function()
-    -- Install tries to automatically detect the install method.
-    -- if it fails, try calling it with one of these parameters:
-    --    "curl", "wget", "bitsadmin", "go"
-    require("dbee").install()
-  end,
+  -- Mason ДОЛЖЕН быть первым
+{
+  "williamboman/mason.nvim",
+  build = ":MasonUpdate",
   config = function()
-    require("dbee").setup(--[[optional config]])
-  end,
+    require("mason").setup()
+    
+    -- Ручная настройка LSP после установки Mason
+    vim.api.nvim_create_user_command("MasonLspSetup", function()
+      local capabilities = vim.lsp.protocol.make_client_capabilities()
+      local cmp_ok, cmp_nvim_lsp = pcall(require, 'cmp_nvim_lsp')
+      if cmp_ok then
+        capabilities = cmp_nvim_lsp.default_capabilities()
+      end
+
+      -- Rust Analyzer
+      vim.lsp.start({
+        name = "rust_analyzer",
+        cmd = { "rust-analyzer" },
+        capabilities = capabilities,
+        settings = {
+          ["rust-analyzer"] = {
+            checkOnSave = {
+              command = "clippy",
+            },
+          }
+        }
+      })
+
+      -- Lua LS
+      vim.lsp.start({
+        name = "lua_ls",
+        cmd = { "lua-language-server" },
+        capabilities = capabilities,
+        settings = {
+          Lua = {
+            diagnostics = {
+              globals = { "vim" }
+            }
+          }
+        }
+      })
+    end, {})
+  end
+},
+
+
+
+
+  -- nvim-cmp для автодополнения
+  {
+    "hrsh7th/nvim-cmp",
+    dependencies = {
+      "hrsh7th/cmp-nvim-lsp",
+      "hrsh7th/cmp-buffer", 
+      "hrsh7th/cmp-path",
+      "hrsh7th/cmp-cmdline",
+      "L3MON4D3/LuaSnip",
+      "saadparwaiz1/cmp_luasnip",
+    },
+    config = function()
+      local cmp = require('cmp')
+      
+      cmp.setup({
+        snippet = {
+          expand = function(args)
+            require('luasnip').lsp_expand(args.body)
+          end,
+        },
+        mapping = cmp.mapping.preset.insert({
+          ['<C-b>'] = cmp.mapping.scroll_docs(-4),
+          ['<C-f>'] = cmp.mapping.scroll_docs(4),
+          ['<C-Space>'] = cmp.mapping.complete(),
+          ['<C-e>'] = cmp.mapping.abort(),
+          ['<CR>'] = cmp.mapping.confirm({ select = true }),
+        }),
+        sources = cmp.config.sources({
+          { name = 'nvim_lsp' },
+          { name = 'luasnip' },
+        }, {
+          { name = 'buffer' },
+        })
+      })
+    end,
   },
-  -- NERDTree
+
+
+  -- Nvim-tree с простой конфигурацией
   {
     "nvim-tree/nvim-tree.lua",
     cmd = { "NvimTreeToggle", "NvimTreeFocus" },
-    opts = function()
-      return require "nvimtree"
-    end,
-    config = function(_, opts)
-      require("nvim-tree").setup(opts)
+    config = function()
+      require("nvim-tree").setup({
+        view = {
+          width = 30,
+        },
+        renderer = {
+          group_empty = true,
+        },
+        filters = {
+          dotfiles = false,
+        },
+      })
     end,
   },
 
--- Rust tools
-{
-  "simrat39/rust-tools.nvim",
-  dependencies = { "neovim/nvim-lspconfig" },
-  ft = "rust", -- Загружать только для Rust-файлов
-  config = function()
-    local rt = require("rust-tools")
-    rt.setup({
-      server = {
-	on_attach = function(client, bufnr)
-	  -- Keymaps для Rust
-	  vim.keymap.set("n", "<leader>rr", rt.runnables.runnables, { buffer = bufnr, desc = "Rust Runnables" })
-	  -- Используем встроенное форматирование LSP
-	  vim.keymap.set("n", "<leader>rf", vim.lsp.buf.format, { buffer = bufnr, desc = "Rust Format" })
-	end
-      }
-    })
-  end
-},
-  -- Mason (установка LSP)
+  -- Tree-sitter
   {
-    "williamboman/mason.nvim",
-    build = ":MasonUpdate",
+    "nvim-treesitter/nvim-treesitter",
+    build = ":TSUpdate",
+    dependencies = {
+      "nvim-treesitter/nvim-treesitter-textobjects",
+    },
     config = function()
-      require("mason").setup()
-    end
-  },
-  {
-    "williamboman/mason-lspconfig.nvim",
-    dependencies = { "williamboman/mason.nvim" },
-    config = function()
-      require("mason-lspconfig").setup({
-        ensure_installed = { "rust_analyzer", "lua_ls" } -- Автоустановка LSP
+      require("nvim-treesitter.configs").setup({
+        ensure_installed = { "rust", "lua", "python", "sql", "javascript", "html", "css" },
+        auto_install = true,
+        highlight = { enable = true },
+        indent = { enable = true },
       })
     end
   },
 
--- Tree-sitter
-{
-  "nvim-treesitter/nvim-treesitter",
-  build = ":TSUpdate",
-  dependencies = {
-    "nvim-treesitter/nvim-treesitter-textobjects",  -- Для улучшенного анализа
-  },
-  config = function()
-    require("nvim-treesitter.configs").setup({
-      ensure_installed = { "rust", "lua", "python", "sql", "javascript", "html", "css" },
-      auto_install = true,
-      highlight = { enable = true },
-      indent = { enable = true },
-      -- Настройка инъекций для вложенных языков
-      injections = {
-        enable = true,
-        include_surrounding_text = true,
-        -- Правила для Rust:
-        rust = {
-          -- SQL в raw-строках (`r#"..."#`) и блоках комментариев
-          {
-            query = [[
-              (raw_string_literal) @sql
-              (#match? @sql "^r#\"\\s*(CREATE|SELECT|INSERT|UPDATE|DELETE|ALTER)")
-            ]],
-            language = "sql",
-          },
-          -- JavaScript в строках с `js!{...}` или подобных
-          {
-            query = [[
-              (call_expression
-                function: (identifier) @func
-                arguments: (raw_string_literal) @js
-                (#eq? @func "js")
-              )
-            ]],
-            language = "javascript",
-          },
-          -- HTML/CSS в строковых литералах (например, для web-шаблонов)
-          {
-            query = [[
-              (raw_string_literal) @html
-              (#match? @html "^r#\"\\s*(<div>|<html>|<!DOCTYPE)")
-            ]],
-            language = "html",
-          },
-          {
-            query = [[
-              (raw_string_literal) @css
-              (#match? @css "^r#\"\\s*(body|\\.[a-z]|#[a-z])")
-            ]],
-            language = "css",
-          },
-        },
-      },
-    })
-  end
-},
--- colorscheme
-{
-   "folke/tokyonight.nvim",
-   config = function()
+  -- Colorscheme
+  {
+    "folke/tokyonight.nvim",
+    config = function()
       require("tokyonight").setup({
-         style = "storm",
-         transparent = true, -- прозрачный фон
+        style = "storm",
+        transparent = true,
       })
       vim.cmd[[colorscheme tokyonight]]
-   end
-},
+    end
+  },
 
--- Ollama
-
--- Custom Parameters (with defaults)
-{
- "David-Kunz/gen.nvim",
- opts = {
-     model = "codellama:13b", -- The default model to use.
-     quit_map = "q", -- set keymap to close the response window
-     retry_map = "<c-r>", -- set keymap to re-send the current prompt
-     accept_map = "<c-cr>", -- set keymap to replace the previous selection with the last result
-     host = "192.168.0.76", -- The host running the Ollama service.
-     port = "11434", -- The port on which the Ollama service is listening.
-     display_mode = "horizontal-split", -- The display mode. Can be "float" or "split" or "horizontal-split".
-     show_prompt = false, -- Shows the prompt submitted to Ollama. Can be true (3 lines) or "full".
-     show_model = false, -- Displays which model you are using at the beginning of your chat session.
-     no_auto_close = false, -- Never closes the window automatically.
-     file = false, -- Write the payload to a temporary file to keep the command short.
-     hidden = false, -- Hide the generation window (if true, will implicitly set `prompt.replace = true`), requires Neovim >= 0.10
-     init = function(options) pcall(io.popen, "ollama serve > /dev/null 2>&1 &") end,
-     -- Function to initialize Ollama
-     command = function(options)
-         local body = {model = options.model, stream = true}
-         return "curl --silent --no-buffer -X POST http://" .. options.host .. ":" .. options.port .. "/api/chat -d $body"
-     end,
-     -- The command for the Ollama service. You can use placeholders $prompt, $model and $body (shellescaped).
-     -- This can also be a command string.
-     -- The executed command must return a JSON object with { response, context }
-     -- (context property is optional).
-     -- list_models = '<omitted lua function>', -- Retrieves a list of model names
-     result_filetype = "markdown", -- Configure filetype of the result buffer
-     debug = false -- Prints errors and the command which is run.
- }
-},
--- Dev icons
-   {
-   'nvim-lualine/lualine.nvim',
+  -- Lualine
+  {
+    'nvim-lualine/lualine.nvim',
     dependencies = { 'nvim-tree/nvim-web-devicons' },
     config = function()
       require('lualine').setup({
-           options = {
-    theme = bubbles_theme,
-    component_separators = '',
-    section_separators = { left = ' ', right = ' ' },
-    disabled_filetypes = {
-      "nerdtree",  -- Игнорировать NERDTree
-      "NvimTree",  -- Если используете nvim-tree
-      "toggleterm" -- Для терминалов
-    }
+        options = {
+          theme = bubbles_theme,
+          component_separators = '',
+          section_separators = { left = ' ', right = ' ' },
+          disabled_filetypes = {
+            "NvimTree",
+            "toggleterm"
+          }
+        },
+        sections = {
+          lualine_a = { { 'mode', separator = { left = ' ' }, right_padding = 2 } },
+          lualine_b = { 'filename', 'branch' },
+          lualine_c = { '%=' },
+          lualine_x = {},
+          lualine_y = { 'filetype', 'progress' },
+          lualine_z = {
+            { 'location', separator = { right = ' ' }, left_padding = 2 },
+          },
+        },
+        inactive_sections = {
+          lualine_a = { 'filename' },
+          lualine_b = {},
+          lualine_c = {},
+          lualine_x = {},
+          lualine_y = {},
+          lualine_z = { 'location' },
+        },
+      })
+    end,
   },
-  sections = {
-    lualine_a = { { 'mode', separator = { left = ' ' }, right_padding = 2 } },
-    lualine_b = { 'filename', 'branch' },
-    lualine_c = {
-      '%=', --[[ add your center components here in place of this comment ]]
+
+  -- Telescope
+  {
+    "nvim-telescope/telescope.nvim",
+    dependencies = {
+      "nvim-lua/plenary.nvim",
+      "nvim-treesitter/nvim-treesitter",
     },
-    lualine_x = {},
-    lualine_y = { 'filetype', 'progress' },
-    lualine_z = {
-      { 'location', separator = { right = ' ' }, left_padding = 2 },
-    },
+    config = function()
+      require("telescope").setup({})
+    end
   },
-  inactive_sections = {
-    lualine_a = { 'filename' },
-    lualine_b = {},
-    lualine_c = {},
-    lualine_x = {},
-    lualine_y = {},
-    lualine_z = { 'location' },
-  },
-  tabline = {},
-  extensions = {},
-         })
-      end,
-   },
-{
-  'andrew-george/telescope-themes', -- Правильное имя репозитория
-  dependencies = { 'nvim-telescope/telescope.nvim' },
-  config = function()
-    require('telescope').load_extension('themes')
-  end
-},
-{
-  "nvim-telescope/telescope.nvim",
-  dependencies = {
-    "nvim-lua/plenary.nvim", -- Обязательно :cite[4]
-    "nvim-treesitter/nvim-treesitter",
-  },
-  config = function(_, opts)
-    require("telescope").setup(opts)
-    -- Удалите строки с load_extension("terms") 
-  end
-}
+
+  -- nvim.ai
+  {
+    "magicalne/nvim.ai",
+    config = function()
+      require("ai").setup({
+        debug = false,
+        ui = {
+          width = 60,
+          side = "right",
+          borderchars = { "╭", "─", "╮", "│", "╯", "─", "╰", "│" },
+          highlight = {
+            border = "FloatBorder",
+            background = "NormalFloat",
+          },
+          prompt_prefix = "❯ ",
+        },
+        provider = "ollama",
+        ollama = {
+          endpoint = "https://vacuously-executive-plaice.cloudpub.ru",
+          model = "qwen3-coder:30b",
+          temperature = 0,
+          max_tokens = 4096,
+          ["local"] = true,
+        },
+        keymaps = {
+          toggle = "<leader>c",
+          send = "<CR>",
+          close = "q",
+          clear = "<C-l>",
+          previous_chat = "<leader>[",
+          next_chat = "<leader>]",
+          inline_assist = "<leader>i",
+          stop_generate = "<C-c>",
+        },
+        behavior = {
+          auto_open = true,
+          save_history = true,
+          history_dir = vim.fn.stdpath("data"),
+        },
+      })
+    end,
+  }
 }

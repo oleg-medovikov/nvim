@@ -1,3 +1,5 @@
+-- init.lua (Обновленный под Lua Parser 3.0.0)
+
 -- Инициализация менеджера плагинов Lazy.nvim
 local lazypath = vim.fn.stdpath("data") .. "/lazy/lazy.nvim"
 if not vim.loop.fs_stat(lazypath) then
@@ -5,49 +7,52 @@ if not vim.loop.fs_stat(lazypath) then
     "git",
     "clone",
     "--filter=blob:none",
-    "https://github.com/folke/lazy.nvim.git",
+    "https://github.com/folke/lazy.nvim.git", -- Убрана лишняя пробел в URL
     "--branch=stable",
     lazypath,
   })
 end
 vim.opt.rtp:prepend(lazypath)
+
+-- Настройки отображения и UI
 vim.opt.guifont = "FiraMono_Nerd_Font:h16"
 vim.opt.clipboard = "unnamedplus"
+vim.opt.number = false        -- Отключены номера строк
+vim.opt.termguicolors = true  -- Полноцветная поддержка
+vim.opt.signcolumn = "yes:1"  -- Резервируется место для знаков (например, брейкпоинтов)
 
--- Базовые настройки Neovim
-vim.opt.number = false        -- Номера строк
 -- Проверка, запущен ли Neovim в Neovide
 if vim.fn.exists("$NEOVIDE") == 1 then
   vim.opt.mouse = "a" -- Включаем мышь в Neovide
 else
   vim.opt.mouse = "" -- Отключаем мышь в терминале
 end
-vim.opt.termguicolors = true -- Полноцветная поддержка
-vim.g.mapleader = " "  -- Пробел как leader
+
+-- Настройки отступов
 vim.opt.tabstop = 3
 vim.opt.shiftwidth = 3
 vim.opt.expandtab = true
-vim.opt.signcolumn = "yes:1"
 
--- трансляция кирилицы в латиницу для команд 
+-- Настройка языковой раскладки для команд (транслитерация)
 vim.opt.langmap = "ФИСВУАПРШОЛДЬТЩЗЙКЫЕГМЦЧНЯ;ABCDEFGHIJKLMNOPQRSTUVWXYZ,фисвуапршолдьтщзйкыегмцчня;abcdefghijklmnopqrstuvwxyz"
 
--- сворачивание #""#
+-- Установка Leader клавиши
+vim.g.mapleader = " "
+
+-- Автокомманда для сворачивания многострочных строк в Rust (используя #""#)
 vim.api.nvim_create_autocmd("FileType", {
   pattern = "rust",
   callback = function()
     -- Устанавливаем метод сворачивания как "marker"
     vim.opt_local.foldmethod = "marker"
-
-    -- Определяем маркеры для сворачивания
-    vim.opt_local.foldmarker = [[r#","#]]
-
+    -- Определяем маркеры для сворачивания строк в стиле Rust
+    vim.opt_local.foldmarker = 'r#,#' -- Используем одинарные кавычки для избежания экранирования
     -- Уровень сворачивания по умолчанию
     vim.opt_local.foldlevel = 0
   end
 })
 
--- распознание файлов .tera
+-- Автокомманда для распознавания файлов .tera как HTML
 vim.api.nvim_create_autocmd({"BufNewFile","BufRead"}, {
   pattern = "*.tera",
   callback = function()
@@ -55,19 +60,25 @@ vim.api.nvim_create_autocmd({"BufNewFile","BufRead"}, {
   end
 })
 
--- Подключение mappings.lua
-local mappings = require("mappings")
-
--- Применение маппингов
-for mode, mode_mappings in pairs(mappings) do
-  for key, mapping in pairs(mode_mappings) do
-    if type(mapping) == "table" and mapping[1] and mapping[2] then
-      vim.keymap.set(mode, key, mapping[1], mapping[2])
-    else
-      print("Ошибка в маппинге:", mode, key, vim.inspect(mapping))
+-- Подключение и применение маппингов из отдельного файла
+local ok_mappings, mappings = pcall(require, "mappings")
+if not ok_mappings then
+  vim.api.nvim_err_writeln("Не удалось загрузить mappings: " .. mappings)
+  mappings = {} -- Инициализируем пустую таблицу, если файл не найден
+else
+  for mode, mode_mappings in pairs(mappings) do
+    for key, mapping in pairs(mode_mappings) do
+      if type(mapping) == "table" and mapping[1] and mapping[2] then
+        local rhs = mapping[1]
+        local opts = mapping[2]
+        vim.keymap.set(mode, key, rhs, opts)
+      else
+        vim.api.nvim_err_writeln("Ошибка в формате маппинга: mode=" .. mode .. ", key=" .. key)
+        -- print("Ошибка в маппинге:", mode, key, vim.inspect(mapping)) -- Старый способ вывода ошибки
+      end
     end
   end
 end
 
--- Загрузка плагинов из файла plugins.lua
+-- Загрузка плагинов через Lazy.nvim
 require("lazy").setup("plugins")

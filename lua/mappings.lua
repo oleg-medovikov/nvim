@@ -101,8 +101,8 @@ end, { desc = "Find files (respect .gitignore)" }
 }
 
 M.i = {
-  ["ii"] = { "<ESC>:w<CR>", { desc = "Save and exit insert", nowait = true } },
-  ["шш"] = { "<ESC>:w<CR>", { desc = "Save and exit insert (Cyr)", nowait = true } },
+  ["ii"] = { "<ESC>:w!<CR>", { desc = "Save and exit insert", nowait = true } },
+  ["шш"] = { "<ESC>:w!<CR>", { desc = "Save and exit insert (Cyr)", nowait = true } },
   ["<C-v>"] = {'"+p', {noremap = true}},
 }
 
