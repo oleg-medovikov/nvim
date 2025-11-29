@@ -76,42 +76,92 @@ return {
 
 
 
-  -- nvim-cmp для автодополнения
-  {
-    "hrsh7th/nvim-cmp",
-    dependencies = {
-      "hrsh7th/cmp-nvim-lsp",
-      "hrsh7th/cmp-buffer", 
-      "hrsh7th/cmp-path",
-      "hrsh7th/cmp-cmdline",
-      "L3MON4D3/LuaSnip",
-      "saadparwaiz1/cmp_luasnip",
-    },
-    config = function()
-      local cmp = require('cmp')
-      
-      cmp.setup({
-        snippet = {
-          expand = function(args)
-            require('luasnip').lsp_expand(args.body)
-          end,
-        },
-        mapping = cmp.mapping.preset.insert({
-          ['<C-b>'] = cmp.mapping.scroll_docs(-4),
-          ['<C-f>'] = cmp.mapping.scroll_docs(4),
-          ['<C-Space>'] = cmp.mapping.complete(),
-          ['<C-e>'] = cmp.mapping.abort(),
-          ['<CR>'] = cmp.mapping.confirm({ select = true }),
-        }),
-        sources = cmp.config.sources({
-          { name = 'nvim_lsp' },
-          { name = 'luasnip' },
-        }, {
-          { name = 'buffer' },
-        })
-      })
-    end,
+   -- nvim-cmp с интеграцией Ollama для Qwen2-Coder 30B
+{
+  "hrsh7th/nvim-cmp",
+  dependencies = {
+    "hrsh7th/cmp-nvim-lsp",
+    "hrsh7th/cmp-buffer", 
+    "hrsh7th/cmp-path",
+    "hrsh7th/cmp-cmdline",
+    "L3MON4D3/LuaSnip",
+    "saadparwaiz1/cmp_luasnip",
+    "nomnivore/ollama.nvim",  -- Добавляем плагин для Ollama
   },
+  config = function()
+    local cmp = require('cmp')
+    
+    -- Настройка Ollama
+    require('ollama').setup({
+      model = "deepseek-r1:8b",  -- Укажите точное название модели
+      url = "https://vacuously-executive-plaice.cloudpub.ru",
+      -- Дополнительные настройки для улучшения качества
+      context_lines = 15,  -- Больше контекста для лучших предложений
+      num_predict = 128,   -- Длина предсказания
+      temperature = 0.2,   -- Меньше креативности, больше точности
+    })
+
+    cmp.setup({
+      snippet = {
+        expand = function(args)
+          require('luasnip').lsp_expand(args.body)
+        end,
+      },
+      mapping = cmp.mapping.preset.insert({
+        ['<C-b>'] = cmp.mapping.scroll_docs(-4),
+        ['<C-f>'] = cmp.mapping.scroll_docs(4),
+        ['<C-Space>'] = cmp.mapping.complete(),
+        ['<C-e>'] = cmp.mapping.abort(),
+        ['<CR>'] = cmp.mapping.confirm({ 
+          select = true,
+          behavior = cmp.ConfirmBehavior.Replace,
+        }),
+        ['<Tab>'] = cmp.mapping(function(fallback)
+          if cmp.visible() then
+            cmp.select_next_item()
+          else
+            fallback()
+          end
+        end, { 'i', 's' }),
+      }),
+      sources = cmp.config.sources({
+        { name = 'ollama', priority = 1000 },  -- AI-дополнения с высоким приоритетом
+        { name = 'nvim_lsp', priority = 750 }, -- LSP дополнения
+        { name = 'luasnip', priority = 500 },  -- Сниппеты
+        { name = 'buffer', priority = 250 },   -- Текст из буфера
+        { name = 'path', priority = 200 },     -- Пути к файлам
+      }),
+      
+      -- Оптимизации для AI-дополнений
+      performance = {
+        debounce = 300,  -- Увеличиваем debounce для AI-запросов
+        throttle = 500,
+        async_budget = 1000,
+      },
+      
+      -- Настройка внешнего вида для AI-предложений
+      formatting = {
+        format = function(entry, vim_item)
+          -- Добавляем иконку для AI-предложений
+          if entry.source.name == "ollama" then
+            vim_item.kind = "🤖 " .. vim_item.kind
+          end
+          return vim_item
+        end,
+      },
+    })
+
+    -- Дополнительная настройка для командной строки
+    cmp.setup.cmdline(':', {
+      mapping = cmp.mapping.preset.cmdline(),
+      sources = cmp.config.sources({
+        { name = 'path' }
+      }, {
+        { name = 'cmdline' }
+      })
+    })
+  end,
+},
 
 
   -- Nvim-tree с простой конфигурацией
@@ -210,47 +260,11 @@ return {
       require("telescope").setup({})
     end
   },
+ {
+   "supermaven-inc/supermaven-nvim",
+   config = function()
+     require("supermaven-nvim").setup({})
+   end,
+ },
 
-  -- nvim.ai
-  {
-    "magicalne/nvim.ai",
-    config = function()
-      require("ai").setup({
-        debug = false,
-        ui = {
-          width = 60,
-          side = "right",
-          borderchars = { "╭", "─", "╮", "│", "╯", "─", "╰", "│" },
-          highlight = {
-            border = "FloatBorder",
-            background = "NormalFloat",
-          },
-          prompt_prefix = "❯ ",
-        },
-        provider = "ollama",
-        ollama = {
-          endpoint = "https://vacuously-executive-plaice.cloudpub.ru",
-          model = "qwen3-coder:30b",
-          temperature = 0,
-          max_tokens = 4096,
-          ["local"] = true,
-        },
-        keymaps = {
-          toggle = "<leader>c",
-          send = "<CR>",
-          close = "q",
-          clear = "<C-l>",
-          previous_chat = "<leader>[",
-          next_chat = "<leader>]",
-          inline_assist = "<leader>i",
-          stop_generate = "<C-c>",
-        },
-        behavior = {
-          auto_open = true,
-          save_history = true,
-          history_dir = vim.fn.stdpath("data"),
-        },
-      })
-    end,
-  }
 }

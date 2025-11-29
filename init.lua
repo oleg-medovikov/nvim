@@ -21,6 +21,16 @@ vim.opt.number = false        -- Отключены номера строк
 vim.opt.termguicolors = true  -- Полноцветная поддержка
 vim.opt.signcolumn = "yes:1"  -- Резервируется место для знаков (например, брейкпоинтов)
 
+-- Увеличиваем таймауты для AI-запросов
+vim.g.ollama_timeout = 30000
+-- Кэширование запросов
+vim.g.ollama_cache = true
+
+-- Добавьте эти маппинги в вашу конфигурацию
+vim.keymap.set('i', '<C-g>', function()
+  require('ollama').generate()
+end, { desc = "Generate code with Ollama" })
+
 -- Проверка, запущен ли Neovim в Neovide
 if vim.fn.exists("$NEOVIDE") == 1 then
   vim.opt.mouse = "a" -- Включаем мышь в Neovide
