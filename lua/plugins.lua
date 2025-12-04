@@ -1,3 +1,6 @@
+-- plugins.lua
+-- Конфигурация плагинов для Neovim 0.11+ с использованием lazy.nvim
+
 local colors = {
   blue   = '#80a0ff',
   cyan   = '#79dac8',
@@ -27,149 +30,153 @@ local bubbles_theme = {
 }
 
 return {
-  -- Mason ДОЛЖЕН быть первым
+  -- Важная последовательность загрузки: сначала LSP, потом Mason
 {
-  "williamboman/mason.nvim",
-  build = ":MasonUpdate",
-  config = function()
-    require("mason").setup()
-    
-    -- Ручная настройка LSP после установки Mason
-    vim.api.nvim_create_user_command("MasonLspSetup", function()
-      local capabilities = vim.lsp.protocol.make_client_capabilities()
-      local cmp_ok, cmp_nvim_lsp = pcall(require, 'cmp_nvim_lsp')
-      if cmp_ok then
-        capabilities = cmp_nvim_lsp.default_capabilities()
-      end
-
-      -- Rust Analyzer
-      vim.lsp.start({
-        name = "rust_analyzer",
-        cmd = { "rust-analyzer" },
-        capabilities = capabilities,
-        settings = {
-          ["rust-analyzer"] = {
-            checkOnSave = {
-              command = "clippy",
-            },
-          }
-        }
-      })
-
-      -- Lua LS
-      vim.lsp.start({
-        name = "lua_ls",
-        cmd = { "lua-language-server" },
-        capabilities = capabilities,
-        settings = {
-          Lua = {
-            diagnostics = {
-              globals = { "vim" }
-            }
-          }
-        }
-      })
-    end, {})
-  end
-},
-
-
-
-
-   -- nvim-cmp с интеграцией Ollama для Qwen2-Coder 30B
-{
-  "hrsh7th/nvim-cmp",
+  'neovim/nvim-lspconfig',
   dependencies = {
-    "hrsh7th/cmp-nvim-lsp",
-    "hrsh7th/cmp-buffer", 
-    "hrsh7th/cmp-path",
-    "hrsh7th/cmp-cmdline",
-    "L3MON4D3/LuaSnip",
-    "saadparwaiz1/cmp_luasnip",
-    "nomnivore/ollama.nvim",  -- Добавляем плагин для Ollama
+    'mason-org/mason.nvim',
+    'mason-org/mason-lspconfig.nvim',
   },
   config = function()
-    local cmp = require('cmp')
+    require('mason').setup()
     
-    -- Настройка Ollama
-    require('ollama').setup({
-      model = "deepseek-r1:8b",  -- Укажите точное название модели
-      url = "https://vacuously-executive-plaice.cloudpub.ru",
-      -- Дополнительные настройки для улучшения качества
-      context_lines = 15,  -- Больше контекста для лучших предложений
-      num_predict = 128,   -- Длина предсказания
-      temperature = 0.2,   -- Меньше креативности, больше точности
+    require('mason-lspconfig').setup({
+      ensure_installed = { 'rust_analyzer', 'lua_ls' },
+      automatic_installation = true,
     })
-
-    cmp.setup({
-      snippet = {
-        expand = function(args)
-          require('luasnip').lsp_expand(args.body)
-        end,
+    
+    local capabilities = vim.lsp.protocol.make_client_capabilities()
+    local cmp_ok, cmp_nvim_lsp = pcall(require, 'cmp_nvim_lsp')
+    if cmp_ok then
+      capabilities = cmp_nvim_lsp.default_capabilities()
+    end
+    
+    -- ИСПРАВЛЕННАЯ конфигурация rust_analyzer
+    vim.lsp.config.rust_analyzer = {
+      capabilities = capabilities,
+      settings = {
+        ['rust-analyzer'] = {
+          checkOnSave = true,  -- Просто true/false вместо таблицы
+          cargo = {
+            features = 'all',
+          },
+          diagnostics = {
+            enable = true,
+            disabled = { 'unresolved-proc-macro' },
+            enableExperimental = true,
+          },
+          -- Альтернативный способ настроить проверку через clippy:
+          check = {
+            command = 'clippy',  -- Теперь это свойство находится здесь
+            extraArgs = { '--', '-W', 'clippy::pedantic' },
+          }
+        },
       },
-      mapping = cmp.mapping.preset.insert({
-        ['<C-b>'] = cmp.mapping.scroll_docs(-4),
-        ['<C-f>'] = cmp.mapping.scroll_docs(4),
-        ['<C-Space>'] = cmp.mapping.complete(),
-        ['<C-e>'] = cmp.mapping.abort(),
-        ['<CR>'] = cmp.mapping.confirm({ 
-          select = true,
-          behavior = cmp.ConfirmBehavior.Replace,
-        }),
-        ['<Tab>'] = cmp.mapping(function(fallback)
-          if cmp.visible() then
-            cmp.select_next_item()
-          else
-            fallback()
-          end
-        end, { 'i', 's' }),
-      }),
-      sources = cmp.config.sources({
-        { name = 'ollama', priority = 1000 },  -- AI-дополнения с высоким приоритетом
-        { name = 'nvim_lsp', priority = 750 }, -- LSP дополнения
-        { name = 'luasnip', priority = 500 },  -- Сниппеты
-        { name = 'buffer', priority = 250 },   -- Текст из буфера
-        { name = 'path', priority = 200 },     -- Пути к файлам
-      }),
-      
-      -- Оптимизации для AI-дополнений
-      performance = {
-        debounce = 300,  -- Увеличиваем debounce для AI-запросов
-        throttle = 500,
-        async_budget = 1000,
+    }
+    
+    vim.lsp.config.lua_ls = {
+      capabilities = capabilities,
+      settings = {
+        Lua = {
+          diagnostics = {
+            globals = { 'vim' },
+          },
+        },
       },
-      
-      -- Настройка внешнего вида для AI-предложений
-      formatting = {
-        format = function(entry, vim_item)
-          -- Добавляем иконку для AI-предложений
-          if entry.source.name == "ollama" then
-            vim_item.kind = "🤖 " .. vim_item.kind
-          end
-          return vim_item
-        end,
-      },
-    })
-
-    -- Дополнительная настройка для командной строки
-    cmp.setup.cmdline(':', {
-      mapping = cmp.mapping.preset.cmdline(),
-      sources = cmp.config.sources({
-        { name = 'path' }
-      }, {
-        { name = 'cmdline' }
-      })
-    })
+    }
+    
+    vim.lsp.enable({ 'rust_analyzer', 'lua_ls' })
   end,
 },
-
-
-  -- Nvim-tree с простой конфигурацией
+  
+  -- nvim-cmp с интеграцией Ollama
   {
-    "nvim-tree/nvim-tree.lua",
-    cmd = { "NvimTreeToggle", "NvimTreeFocus" },
+    'hrsh7th/nvim-cmp',
+    dependencies = {
+      'hrsh7th/cmp-nvim-lsp',
+      'hrsh7th/cmp-buffer',
+      'hrsh7th/cmp-path',
+      'hrsh7th/cmp-cmdline',
+      'L3MON4D3/LuaSnip',
+      'saadparwaiz1/cmp_luasnip',
+      'nomnivore/ollama.nvim',
+    },
     config = function()
-      require("nvim-tree").setup({
+      local cmp = require('cmp')
+      
+      -- Настройка Ollama для AI-дополнений
+      require('ollama').setup({
+        model = 'deepseek-r1:8b',
+        url = 'https://vacuously-executive-plaice.cloudpub.ru',
+        context_lines = 15,
+        num_predict = 128,
+        temperature = 0.2,
+      })
+      
+      cmp.setup({
+        snippet = {
+          expand = function(args)
+            require('luasnip').lsp_expand(args.body)
+          end,
+        },
+        mapping = cmp.mapping.preset.insert({
+          ['<C-b>'] = cmp.mapping.scroll_docs(-4),
+          ['<C-f>'] = cmp.mapping.scroll_docs(4),
+          ['<C-Space>'] = cmp.mapping.complete(),
+          ['<C-e>'] = cmp.mapping.abort(),
+          ['<CR>'] = cmp.mapping.confirm({
+            select = true,
+            behavior = cmp.ConfirmBehavior.Replace,
+          }),
+          ['<Tab>'] = cmp.mapping(function(fallback)
+            if cmp.visible() then
+              cmp.select_next_item()
+            else
+              fallback()
+            end
+          end, { 'i', 's' }),
+        }),
+        sources = cmp.config.sources({
+          { name = 'ollama', priority = 1000 },
+          { name = 'nvim_lsp', priority = 750 },
+          { name = 'luasnip', priority = 500 },
+          { name = 'buffer', priority = 250 },
+          { name = 'path', priority = 200 },
+        }),
+        
+        performance = {
+          debounce = 300,
+          throttle = 500,
+          async_budget = 1000,
+        },
+        
+        formatting = {
+          format = function(entry, vim_item)
+            if entry.source.name == 'ollama' then
+              vim_item.kind = '🤖 ' .. vim_item.kind
+            end
+            return vim_item
+          end,
+        },
+      })
+      
+      cmp.setup.cmdline(':', {
+        mapping = cmp.mapping.preset.cmdline(),
+        sources = cmp.config.sources({
+          { name = 'path' },
+        }, {
+          { name = 'cmdline' },
+        }),
+      })
+    end,
+  },
+  
+  -- Nvim-tree
+  {
+    'nvim-tree/nvim-tree.lua',
+    cmd = { 'NvimTreeToggle', 'NvimTreeFocus' },
+    config = function()
+      require('nvim-tree').setup({
         view = {
           width = 30,
         },
@@ -182,36 +189,36 @@ return {
       })
     end,
   },
-
+  
   -- Tree-sitter
   {
-    "nvim-treesitter/nvim-treesitter",
-    build = ":TSUpdate",
+    'nvim-treesitter/nvim-treesitter',
+    build = ':TSUpdate',
     dependencies = {
-      "nvim-treesitter/nvim-treesitter-textobjects",
+      'nvim-treesitter/nvim-treesitter-textobjects',
     },
     config = function()
-      require("nvim-treesitter.configs").setup({
-        ensure_installed = { "rust", "lua", "python", "sql", "javascript", "html", "css" },
+      require('nvim-treesitter.configs').setup({
+        ensure_installed = { 'rust', 'lua', 'python', 'sql', 'javascript', 'html', 'css' },
         auto_install = true,
         highlight = { enable = true },
         indent = { enable = true },
       })
-    end
+    end,
   },
-
+  
   -- Colorscheme
   {
-    "folke/tokyonight.nvim",
+    'folke/tokyonight.nvim',
     config = function()
-      require("tokyonight").setup({
-        style = "storm",
+      require('tokyonight').setup({
+        style = 'storm',
         transparent = true,
       })
-      vim.cmd[[colorscheme tokyonight]]
-    end
+      vim.cmd.colorscheme('tokyonight')
+    end,
   },
-
+  
   -- Lualine
   {
     'nvim-lualine/lualine.nvim',
@@ -223,9 +230,9 @@ return {
           component_separators = '',
           section_separators = { left = ' ', right = ' ' },
           disabled_filetypes = {
-            "NvimTree",
-            "toggleterm"
-          }
+            'NvimTree',
+            'toggleterm',
+          },
         },
         sections = {
           lualine_a = { { 'mode', separator = { left = ' ' }, right_padding = 2 } },
@@ -248,23 +255,16 @@ return {
       })
     end,
   },
-
+  
   -- Telescope
   {
-    "nvim-telescope/telescope.nvim",
+    'nvim-telescope/telescope.nvim',
     dependencies = {
-      "nvim-lua/plenary.nvim",
-      "nvim-treesitter/nvim-treesitter",
+      'nvim-lua/plenary.nvim',
+      'nvim-treesitter/nvim-treesitter',
     },
     config = function()
-      require("telescope").setup({})
-    end
+      require('telescope').setup({})
+    end,
   },
- {
-   "supermaven-inc/supermaven-nvim",
-   config = function()
-     require("supermaven-nvim").setup({})
-   end,
- },
-
 }

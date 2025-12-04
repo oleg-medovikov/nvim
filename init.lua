@@ -26,6 +26,63 @@ vim.g.ollama_timeout = 30000
 -- Кэширование запросов
 vim.g.ollama_cache = true
 
+-- Показывает иконки для разных типов сообщений
+vim.diagnostic.config({
+  virtual_text = {
+    format = function(diagnostic)
+      local icons = {
+        [vim.diagnostic.severity.ERROR] = " ",
+        [vim.diagnostic.severity.WARN] = " ",
+        [vim.diagnostic.severity.INFO] = " ",
+        [vim.diagnostic.severity.HINT] = "󰌶 ",
+      }
+      
+      -- Функция для умного переноса текста
+      local function wrap_text(text, width)
+        if #text <= width then return {text} end
+        
+        local lines = {}
+        while #text > 0 do
+          local chunk = text:sub(1, width)
+          local last_space = chunk:reverse():find(" ")
+          
+          if last_space and #text > width then
+            chunk = text:sub(1, width - last_space)
+            text = text:sub(width - last_space + 2)
+          else
+            text = text:sub(width + 1)
+          end
+          
+          table.insert(lines, chunk)
+        end
+        
+        return lines
+      end
+      
+      local icon = icons[diagnostic.severity] or ""
+      local wrapped_lines = wrap_text(diagnostic.message, 90)
+      
+      -- Возвращаем только первую строку с иконкой
+      return icon .. wrapped_lines[1] .. (#wrapped_lines > 1 and "..." or "")
+    end,
+    spacing = 4,
+    prefix = "",
+    wrap_at = 90,
+  },
+  float = {
+    border = "rounded",
+    max_width = 90,
+    wrap = true,
+  },
+  -- остальные настройки...
+    signs = true,
+    underline = true,
+    update_in_insert = false,
+    severity_sort = true,
+})
+
+
+
 -- Добавьте эти маппинги в вашу конфигурацию
 vim.keymap.set('i', '<C-g>', function()
   require('ollama').generate()
@@ -56,7 +113,7 @@ vim.api.nvim_create_autocmd("FileType", {
     -- Устанавливаем метод сворачивания как "marker"
     vim.opt_local.foldmethod = "marker"
     -- Определяем маркеры для сворачивания строк в стиле Rust
-    vim.opt_local.foldmarker = 'r#,#' -- Используем одинарные кавычки для избежания экранирования
+    vim.opt_local.foldmarker = 'r",";' -- Используем одинарные кавычки для избежания экранирования
     -- Уровень сворачивания по умолчанию
     vim.opt_local.foldlevel = 0
   end
